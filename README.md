@@ -39,7 +39,7 @@ sudo apt install ros-humble-turtlebot3\*
 
 mkdir -p ~/dwa_planner_ws/src
 cd ~/dwa_planner_ws/src
-# Copy your DWA planner package here
+git clone https://github.com/AniArka/custom_dwa_local_planner
 cd ..
 colcon build
 source install/setup.bash
