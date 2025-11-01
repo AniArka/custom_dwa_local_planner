@@ -2,6 +2,11 @@
 
 A custom implementation of the Dynamic Window Approach (DWA) local planner for TurtleBot3 in ROS2 Humble. This planner enables autonomous navigation with obstacle avoidance in Gazebo simulations.
 
+
+https://github.com/user-attachments/assets/b076423b-ce86-45b4-aa45-1619451b5f42
+
+
+
 ## Features
 
 - **Complete DWA Implementation**: Velocity sampling, trajectory prediction, and cost evaluation
