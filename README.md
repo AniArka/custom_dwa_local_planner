@@ -114,29 +114,105 @@ The planner can be configured via ROS2 parameters in the launch file or dynamica
 *   `/odom` (`nav_msgs/Odometry`) - Robot pose and velocity information
     
 *   `/scan` (`sensor_msgs/LaserScan`) - Obstacle detection data from laser
-    
+-----
+## Planner Architecture & Approach
+
+This project implements a **goal-directed Dynamic Window Approach (DWA)** local planner **from scratch** without Nav2, to demonstrate understanding of real robot motion planning fundamentals rather than relying on packaged stacks.
+
+The planner continuously samples feasible velocity commands, predicts motion trajectories, evaluates them, and executes the best one based on weighted scores and safety rules.
+
+**Core Architecture**
+
+|**Component**|**Purpose**|
+| :- | :- |
+|Laser Processing|Extract obstacle clearance & safety radius|
+|Odometry & TF|Compute robot state (x, y, yaw, v, ω)|
+|Dynamic Window|Sample feasible (v, ω) based on accel limits|
+|Trajectory Rollout|Predict forward motion arcs over time horizon|
+|Cost Evaluation|Distance-to-goal, turn cost, forward speed bias|
+|Collision Check|Laser-based forward collision cone validation|
+|Recovery Logic|Escape local minima by controlled rotate-toward-goal|
+|RViz Visualization|Live display of all candidate trajectories|
+
+-----
 
 ## Algorithm Overview
 
-1.  Velocity Sampling: Generates admissible velocity pairs within dynamic constraints
-    
-2.  Trajectory Prediction: Simulates robot motion for each velocity sample over prediction horizon
-    
-3.  Cost Evaluation: Scores trajectories based on:
-    
-    *   Distance to goal
-        
-    *   Obstacle clearance
-        
-    *   Path smoothness
-        
-    *   Speed efficiency
-        
-4.  Best Trajectory Selection: Chooses optimal velocity command with lowest cost
-    
-5.  Safety Checks: Ensures collision-free navigation through obstacle validation
+While most DWA implementations fully rely on a global planner, this controller intentionally follows a **pure local DWA navigation philosophy** suitable for semi-structured environments like construction sites:
 
-## File Structure
+**Drive toward goal unless obstacle avoidance is required.\
+If obstacles disrupt progress, locally optimize trajectory using DWA.**
+
+This ensures:
+
+- High-speed direct motion when path is clear
+- Controlled turning only when needed
+- Smooth and stable navigation instead of oscillatory motion
+- Simplicity and robustness without a global costmap
+-----
+### Why Not Use Nav2?
+
+This was a deliberate design choice:
+
+-  Demonstrate understanding of core DWA mechanics
+-  Prove ability to build a planner without pre-built stacks
+-  Focus on dynamic feasibility, collision reasoning, and recovery
+-  Suitable for cluttered job-site-like environments
+-  Allows direct control and interpretation of trajectory scoring
+
+In real robots, this architecture is ideal for:
+
+- Relatively open, dynamic environments
+- Construction-like navigation (dynamic workers/equipment)
+- Robots without global maps or when map is unreliable
+-----
+### Cost Function Summary
+
+The planner evaluates each candidate trajectory with:
+
+|**Term**|**Meaning**|
+| :- | :- |
+|Distance to goal|Prioritizes forward progress|
+|Turn penalty|Prefers straight or gentle curvature|
+|Speed bonus|Encourages efficient forward motion|
+|Safety check|Discards trajectories intersecting obstacles|
+
+Collision avoidance is **strict, not probabilistic** — if a trajectory violates a safety envelope, it is rejected.
+
+This ensures **smooth, safe, and directed navigation**.
+
+-----
+### Recovery Behavior
+
+When progress stalls (local minima):
+
+- Track distance-to-goal improvement
+- Trigger rotational recovery aligned to goal heading
+- Reset and resume DWA sampling
+
+This prevents oscillation and stuck states without global planning.
+
+-----
+### Result
+
+This planner reliably reaches goal positions in simulation while avoiding obstacles using:
+
+- Selective straight-line bias
+- Adaptive velocity control based on obstacle clearance
+- Dynamic trajectory rollout
+- Safety-gated sampling
+- Minimal but effective recovery logic
+
+Not just “move and avoid” — **predict, evaluate, choose, commit**.
+
+-----
+### Future Extensions (Open-Ended)
+
+- Add clearance cost term to scoring (non-binary)
+- Fuse simple inflation layer for smoother obstacle behavior
+- Optional global waypoint assist for maze-like layouts
+
+### File Structure
 
 ```text
 
